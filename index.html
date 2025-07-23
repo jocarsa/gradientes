@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Patrones Voronoi</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: row;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 1000px;
+        }
+        .column {
+            flex: 1;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+        }
+        .slider-container {
+            width: 80%;
+            max-width: 400px;
+            margin: 10px auto;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        canvas {
+            border: 1px solid #000;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 100%;
+            height: auto;
+        }
+        .slider-label {
+            display: block;
+            font-size: 1.2em;
+            margin-top: 10px;
+            text-align: center;
+        }
+        h1 {
+            text-align: center;
+            width: 100%;
+        }
+    </style>
+    <script src="https://d3js.org/d3-delaunay.v6.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="column">
+            <h1>Generador de Patrones Voronoi</h1>
+            <input type="file" id="imageUpload" accept="image/*">
+            <div class="slider-container">
+                <input type="range" id="pixelPercentage" min="0" max="1" value="1" step="0.01">
+                <span class="slider-label" id="pixelPercentageValue">1%</span>
+            </div>
+        </div>
+        <div class="column">
+            <div class="slider-container">
+                <input type="range" id="blurPercentage" min="0" max="100" value="0" step="1">
+                <span class="slider-label" id="blurPercentageValue">0%</span>
+            </div>
+        </div>
+    </div>
+    <canvas id="imageCanvas" width="1024" height="1024" style="display: none;"></canvas>
+    <canvas id="pointCloudCanvas" width="1024" height="1024"></canvas>
+    <script>
+        const imageCanvas = document.getElementById('imageCanvas');
+        const imageCtx = imageCanvas.getContext('2d');
+        const pointCloudCanvas = document.getElementById('pointCloudCanvas');
+        const ctx = pointCloudCanvas.getContext('2d');
+        const pixelPercentageSlider = document.getElementById('pixelPercentage');
+        const pixelPercentageValue = document.getElementById('pixelPercentageValue');
+        const blurPercentageSlider = document.getElementById('blurPercentage');
+        const blurPercentageValue = document.getElementById('blurPercentageValue');
+        const imageUpload = document.getElementById('imageUpload');
+
+        // Update the displayed percentage values
+        pixelPercentageSlider.addEventListener('input', function() {
+            pixelPercentageValue.textContent = this.value + '%';
+            processImage();
+        });
+
+        blurPercentageSlider.addEventListener('input', function() {
+            blurPercentageValue.textContent = this.value + '%';
+            processImage();
+        });
+
+        // Handle image upload
+        imageUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // Draw the image on the hidden canvas
+                        imageCtx.drawImage(img, 0, 0, imageCanvas.width, imageCanvas.height);
+                        processImage();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function processImage() {
+            const imageData = imageCtx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
+            const data = imageData.data;
+
+            // Calculate the number of pixels to sample based on the percentage
+            const pixelPercentage = parseFloat(pixelPercentageSlider.value);
+            const totalPixels = imageCanvas.width * imageCanvas.height;
+            const minPixels = 10; // Ensure at least 10 pixels are sampled
+            const numPixelsToSample = Math.max(minPixels, Math.floor(totalPixels * pixelPercentage / 100));
+
+            // Spread random pixels onto a grid
+            const points = [];
+            const usedIndices = new Set();
+            while (points.length < numPixelsToSample) {
+                const randomIndex = Math.floor(Math.random() * totalPixels);
+                if (!usedIndices.has(randomIndex)) {
+                    usedIndices.add(randomIndex);
+                    const x = randomIndex % imageCanvas.width;
+                    const y = Math.floor(randomIndex / imageCanvas.width);
+                    const index = (y * imageCanvas.width + x) * 4;
+                    const r = data[index];
+                    const g = data[index + 1];
+                    const b = data[index + 2];
+                    const color = `rgb(${r}, ${g}, ${b})`;
+                    points.push({ x, y, color });
+                }
+            }
+
+            // Draw Voronoi diagram
+            drawVoronoi(points);
+        }
+
+        function drawVoronoi(points) {
+            if (points.length === 0) return;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, pointCloudCanvas.width, pointCloudCanvas.height);
+
+            // Compute Voronoi diagram
+            const delaunay = d3.Delaunay.from(points.map(p => [p.x, p.y]));
+            const voronoi = delaunay.voronoi([0, 0, pointCloudCanvas.width, pointCloudCanvas.height]);
+
+            // Draw Voronoi cells with color gradients
+            points.forEach((point, index) => {
+                const cell = voronoi.cellPolygon(index);
+                if (cell) {
+                    ctx.beginPath();
+                    ctx.moveTo(cell[0][0], cell[0][1]);
+                    for (let i = 1; i < cell.length; i++) {
+                        ctx.lineTo(cell[i][0], cell[i][1]);
+                    }
+                    ctx.closePath();
+
+                    // Fill with a gradient
+                    const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, Math.max(pointCloudCanvas.width, pointCloudCanvas.height));
+                    gradient.addColorStop(0, point.color);
+                    gradient.addColorStop(1, 'white');
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                }
+            });
+
+            // Apply blur effect
+            const blurPercentage = parseFloat(blurPercentageSlider.value);
+            if (blurPercentage > 0) {
+                const blurRadius = (blurPercentage / 100) * 10;
+                ctx.filter = `blur(${blurRadius}px)`;
+                ctx.drawImage(pointCloudCanvas, 0, 0);
+                ctx.filter = 'none';
+            }
+
+            // Draw points
+            points.forEach(point => {
+                ctx.fillStyle = point.color;
+                ctx.fillRect(point.x, point.y, 2, 2);
+            });
+        }
+    </script>
+</body>
+</html>
+
