@@ -4,134 +4,497 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de Patrones Voronoi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #a29bfe;
+            --dark: #2d3436;
+            --light: #f5f6fa;
+            --accent: #fd79a8;
+            --success: #00b894;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
-            font-family: 'Arial', sans-serif;
-        }
-        .container {
-            display: flex;
-            flex-direction: row;
-            background-color: white;
+            background: linear-gradient(135deg, var(--dark), #1a1a2e);
+            font-family: 'Poppins', sans-serif;
+            color: var(--light);
+            overflow-x: hidden;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            width: 90%;
-            max-width: 1000px;
         }
-        .column {
-            flex: 1;
-            padding: 10px;
+        
+        .app-container {
+            display: flex;
+            width: 100%;
+            max-width: 1800px;
+            height: 900px;
+            gap: 20px;
+        }
+        
+        .controls-column {
+            flex: 0 0 400px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             display: flex;
             flex-direction: column;
+        }
+        
+        .canvas-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            background: var(--dark);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: center;
             align-items: center;
         }
-        input[type="file"] {
-            margin-bottom: 20px;
-        }
-        .slider-container {
-            width: 80%;
-            max-width: 400px;
-            margin: 10px auto;
-        }
-        input[type="range"] {
-            width: 100%;
-        }
-        canvas {
-            border: 1px solid #000;
-            margin-top: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        
+        .canvas-wrapper {
+            position: relative;
             max-width: 100%;
-            height: auto;
+            max-height: 100%;
         }
-        .slider-label {
+        
+        .title {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .control-group {
+            margin-bottom: 2rem;
+        }
+        
+        .control-group h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .file-upload {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        
+        .file-upload-label {
             display: block;
-            font-size: 1.2em;
-            margin-top: 10px;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 10px;
             text-align: center;
-        }
-        h1 {
-            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+            font-weight: 500;
+            border: none;
             width: 100%;
+        }
+        
+        .file-upload-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+        }
+        
+        #imageUpload {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+        
+        .slider-container {
+            width: 100%;
+            margin-bottom: 1.5rem;
+        }
+        
+        .slider-label-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .slider-label {
+            font-size: 0.9rem;
+            color: var(--light);
+            font-weight: 300;
+        }
+        
+        .slider-value {
+            font-weight: 600;
+            color: var(--accent);
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(253, 121, 168, 0.5);
+        }
+        
+        #pointCloudCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+        
+        #imageCanvas {
+            display: none;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .loading.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Floating animation for decorative elements */
+        .floating {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .floating:nth-child(1) {
+            width: 200px;
+            height: 200px;
+            top: -100px;
+            left: -100px;
+            background: radial-gradient(circle, rgba(108, 92, 231, 0.2), transparent 70%);
+            animation: float 15s ease-in-out infinite;
+        }
+        
+        .floating:nth-child(2) {
+            width: 300px;
+            height: 300px;
+            bottom: -150px;
+            right: -150px;
+            background: radial-gradient(circle, rgba(253, 121, 168, 0.2), transparent 70%);
+            animation: float 20s ease-in-out infinite reverse;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+            25% {
+                transform: translate(50px, 50px) rotate(5deg);
+            }
+            50% {
+                transform: translate(0, 100px) rotate(0deg);
+            }
+            75% {
+                transform: translate(-50px, 50px) rotate(-5deg);
+            }
         }
     </style>
-    <script src="https://d3js.org/d3-delaunay.v6.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="column">
-            <h1>Generador de Patrones Voronoi</h1>
-            <input type="file" id="imageUpload" accept="image/*">
-            <div class="slider-container">
-                <input type="range" id="pixelPercentage" min="0" max="1" value="1" step="0.01">
-                <span class="slider-label" id="pixelPercentageValue">1%</span>
+    <!-- Decorative floating elements -->
+    <div class="floating"></div>
+    <div class="floating"></div>
+    
+    <!-- Loading overlay -->
+    <div class="loading" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <div class="app-container">
+        <div class="controls-column">
+            <h1 class="title">Generador de Patrones Voronoi</h1>
+            
+            <div class="control-group">
+                <h2><i>📁</i> Cargar Imagen</h2>
+                <div class="file-upload">
+                    <label for="imageUpload" class="file-upload-label">Seleccionar Imagen</label>
+                    <input type="file" id="imageUpload" accept="image/*">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h2><i>⚙️</i> Configuración</h2>
+                <div class="slider-container">
+                    <div class="slider-label-container">
+                        <span class="slider-label">Densidad de Puntos</span>
+                        <span class="slider-value" id="pixelPercentageValue">1%</span>
+                    </div>
+                    <input type="range" id="pixelPercentage" min="0.01" max="5" value="1" step="0.01">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-label-container">
+                        <span class="slider-label">Desenfoque</span>
+                        <span class="slider-value" id="blurPercentageValue">0%</span>
+                    </div>
+                    <input type="range" id="blurPercentage" min="0" max="100" value="0" step="1">
+                </div>
             </div>
         </div>
-        <div class="column">
-            <div class="slider-container">
-                <input type="range" id="blurPercentage" min="0" max="100" value="0" step="1">
-                <span class="slider-label" id="blurPercentageValue">0%</span>
+        
+        <div class="canvas-column">
+            <div class="canvas-container">
+                <div class="canvas-wrapper">
+                    <canvas id="pointCloudCanvas"></canvas>
+                </div>
             </div>
         </div>
     </div>
-    <canvas id="imageCanvas" width="1024" height="1024" style="display: none;"></canvas>
-    <canvas id="pointCloudCanvas" width="1024" height="1024"></canvas>
+    
+    <canvas id="imageCanvas" style="display: none;"></canvas>
+    
+    <script src="https://d3js.org/d3-delaunay.v6.min.js"></script>
     <script>
+        // Elements
         const imageCanvas = document.getElementById('imageCanvas');
         const imageCtx = imageCanvas.getContext('2d');
         const pointCloudCanvas = document.getElementById('pointCloudCanvas');
-        const ctx = pointCloudCanvas.getContext('2d');
+        const pointCloudCtx = pointCloudCanvas.getContext('2d');
         const pixelPercentageSlider = document.getElementById('pixelPercentage');
         const pixelPercentageValue = document.getElementById('pixelPercentageValue');
         const blurPercentageSlider = document.getElementById('blurPercentage');
         const blurPercentageValue = document.getElementById('blurPercentageValue');
         const imageUpload = document.getElementById('imageUpload');
-
-        // Update the displayed percentage values
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const canvasWrapper = document.querySelector('.canvas-wrapper');
+        
+        // Store original image dimensions
+        let originalImageWidth = 0;
+        let originalImageHeight = 0;
+        let imageAspectRatio = 1;
+        
+        // Initialize
+        window.addEventListener('load', () => {
+            createDefaultImage();
+        });
+        
+        // Update slider values display
         pixelPercentageSlider.addEventListener('input', function() {
             pixelPercentageValue.textContent = this.value + '%';
-            processImage();
+            debouncedProcessImage();
         });
-
+        
         blurPercentageSlider.addEventListener('input', function() {
             blurPercentageValue.textContent = this.value + '%';
-            processImage();
+            debouncedProcessImage();
         });
-
+        
         // Handle image upload
         imageUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
+                showLoading();
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     const img = new Image();
                     img.onload = function() {
-                        // Draw the image on the hidden canvas
-                        imageCtx.drawImage(img, 0, 0, imageCanvas.width, imageCanvas.height);
+                        // Store original dimensions and aspect ratio
+                        originalImageWidth = img.width;
+                        originalImageHeight = img.height;
+                        imageAspectRatio = originalImageWidth / originalImageHeight;
+                        
+                        // Resize canvases to maintain aspect ratio
+                        resizeCanvases();
+                        
+                        // Draw image maintaining aspect ratio
+                        drawImageToCanvas(img);
                         processImage();
+                        hideLoading();
                     };
+                    img.onerror = hideLoading;
                     img.src = event.target.result;
                 };
+                reader.onerror = hideLoading;
                 reader.readAsDataURL(file);
             }
         });
-
+        
+        // Draw image to canvas maintaining aspect ratio
+        function drawImageToCanvas(img) {
+            const container = document.querySelector('.canvas-container');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            // Calculate dimensions that fit container while maintaining aspect ratio
+            let drawWidth, drawHeight;
+            
+            if (containerWidth / containerHeight > imageAspectRatio) {
+                // Container is wider than image aspect ratio
+                drawHeight = containerHeight;
+                drawWidth = drawHeight * imageAspectRatio;
+            } else {
+                // Container is taller than image aspect ratio
+                drawWidth = containerWidth;
+                drawHeight = drawWidth / imageAspectRatio;
+            }
+            
+            // Clear canvas
+            imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+            
+            // Set canvas dimensions to match drawing dimensions
+            imageCanvas.width = drawWidth;
+            imageCanvas.height = drawHeight;
+            
+            // Draw image centered
+            imageCtx.drawImage(img, 0, 0, drawWidth, drawHeight);
+        }
+        
+        // Resize canvases based on container and image aspect ratio
+        function resizeCanvases() {
+            const container = document.querySelector('.canvas-container');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            let canvasWidth, canvasHeight;
+            
+            if (containerWidth / containerHeight > imageAspectRatio) {
+                // Container is wider than image aspect ratio
+                canvasHeight = containerHeight;
+                canvasWidth = canvasHeight * imageAspectRatio;
+            } else {
+                // Container is taller than image aspect ratio
+                canvasWidth = containerWidth;
+                canvasHeight = canvasWidth / imageAspectRatio;
+            }
+            
+            // Set canvas dimensions
+            pointCloudCanvas.width = canvasWidth;
+            pointCloudCanvas.height = canvasHeight;
+            imageCanvas.width = canvasWidth;
+            imageCanvas.height = canvasHeight;
+            
+            // Update wrapper dimensions
+            canvasWrapper.style.width = `${canvasWidth}px`;
+            canvasWrapper.style.height = `${canvasHeight}px`;
+        }
+        
+        // Debounce function to prevent too many rapid updates
+        let debounceTimer;
+        function debouncedProcessImage() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                showLoading();
+                setTimeout(() => {
+                    processImage();
+                    hideLoading();
+                }, 100);
+            }, 300);
+        }
+        
+        // Loading overlay functions
+        function showLoading() {
+            loadingOverlay.classList.add('active');
+        }
+        
+        function hideLoading() {
+            loadingOverlay.classList.remove('active');
+        }
+        
+        // Create default gradient image
+        function createDefaultImage() {
+            originalImageWidth = 800;
+            originalImageHeight = 600;
+            imageAspectRatio = originalImageWidth / originalImageHeight;
+            resizeCanvases();
+            
+            const gradient = imageCtx.createLinearGradient(0, 0, imageCanvas.width, imageCanvas.height);
+            gradient.addColorStop(0, '#6c5ce7');
+            gradient.addColorStop(1, '#fd79a8');
+            imageCtx.fillStyle = gradient;
+            imageCtx.fillRect(0, 0, imageCanvas.width, imageCanvas.height);
+            processImage();
+        }
+        
+        // Process image and generate Voronoi pattern
         function processImage() {
             const imageData = imageCtx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
             const data = imageData.data;
-
+            
             // Calculate the number of pixels to sample based on the percentage
             const pixelPercentage = parseFloat(pixelPercentageSlider.value);
             const totalPixels = imageCanvas.width * imageCanvas.height;
-            const minPixels = 10; // Ensure at least 10 pixels are sampled
-            const numPixelsToSample = Math.max(minPixels, Math.floor(totalPixels * pixelPercentage / 100));
-
-            // Spread random pixels onto a grid
+            const minPixels = 10;
+            const numPixelsToSample = Math.max(minPixels, Math.floor(totalPixels * (pixelPercentage / 100)));
+            
+            // Spread random pixels
             const points = [];
             const usedIndices = new Set();
             while (points.length < numPixelsToSample) {
@@ -148,57 +511,62 @@
                     points.push({ x, y, color });
                 }
             }
-
+            
             // Draw Voronoi diagram
             drawVoronoi(points);
         }
-
+        
         function drawVoronoi(points) {
             if (points.length === 0) return;
-
+            
             // Clear canvas
-            ctx.clearRect(0, 0, pointCloudCanvas.width, pointCloudCanvas.height);
-
+            pointCloudCtx.clearRect(0, 0, pointCloudCanvas.width, pointCloudCanvas.height);
+            
             // Compute Voronoi diagram
             const delaunay = d3.Delaunay.from(points.map(p => [p.x, p.y]));
             const voronoi = delaunay.voronoi([0, 0, pointCloudCanvas.width, pointCloudCanvas.height]);
-
-            // Draw Voronoi cells with color gradients
+            
+            // Draw Voronoi cells with radial gradients
             points.forEach((point, index) => {
                 const cell = voronoi.cellPolygon(index);
                 if (cell) {
-                    ctx.beginPath();
-                    ctx.moveTo(cell[0][0], cell[0][1]);
+                    pointCloudCtx.beginPath();
+                    pointCloudCtx.moveTo(cell[0][0], cell[0][1]);
                     for (let i = 1; i < cell.length; i++) {
-                        ctx.lineTo(cell[i][0], cell[i][1]);
+                        pointCloudCtx.lineTo(cell[i][0], cell[i][1]);
                     }
-                    ctx.closePath();
-
-                    // Fill with a gradient
-                    const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, Math.max(pointCloudCanvas.width, pointCloudCanvas.height));
+                    pointCloudCtx.closePath();
+                    
+                    // Create radial gradient centered on the point
+                    const gradient = pointCloudCtx.createRadialGradient(
+                        point.x, point.y, 0,
+                        point.x, point.y, Math.max(pointCloudCanvas.width, pointCloudCanvas.height)
+                    );
                     gradient.addColorStop(0, point.color);
                     gradient.addColorStop(1, 'white');
-                    ctx.fillStyle = gradient;
-                    ctx.fill();
+                    
+                    pointCloudCtx.fillStyle = gradient;
+                    pointCloudCtx.fill();
                 }
             });
-
+            
             // Apply blur effect
             const blurPercentage = parseFloat(blurPercentageSlider.value);
             if (blurPercentage > 0) {
-                const blurRadius = (blurPercentage / 100) * 10;
-                ctx.filter = `blur(${blurRadius}px)`;
-                ctx.drawImage(pointCloudCanvas, 0, 0);
-                ctx.filter = 'none';
+                const blurRadius = (blurPercentage / 100) * 20;
+                pointCloudCtx.filter = `blur(${blurRadius}px)`;
+                pointCloudCtx.drawImage(pointCloudCanvas, 0, 0);
+                pointCloudCtx.filter = 'none';
             }
-
+            
             // Draw points
             points.forEach(point => {
-                ctx.fillStyle = point.color;
-                ctx.fillRect(point.x, point.y, 2, 2);
+                pointCloudCtx.fillStyle = point.color;
+                pointCloudCtx.beginPath();
+                pointCloudCtx.arc(point.x, point.y, 2, 0, Math.PI * 2);
+                pointCloudCtx.fill();
             });
         }
     </script>
 </body>
 </html>
-
